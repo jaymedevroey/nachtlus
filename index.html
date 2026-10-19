@@ -113,7 +113,7 @@ input[type=range] { width: 100%; height: 32px; margin: 0; accent-color: var(--bl
 .arrive h2 { margin: 0 0 6px; font-size: 1.6rem; }
 .arrive p { margin: 0 0 18px; color: var(--muted); }
 .arrive .btn { width: 100%; }
-.car { width: 48px; height: 48px; filter: drop-shadow(0 4px 8px rgba(0,0,0,.55)); }
+.car { width: 56px; height: 56px; filter: drop-shadow(0 4px 8px rgba(0,0,0,.55)); }
 .startpin { width: 34px; height: 34px; border-radius: 50%; border: 4px solid #fff; background: var(--blue); color: #08324a; display: grid; place-items: center; font-size: 14px; font-weight: 800; box-shadow: 0 4px 12px rgba(0,0,0,.5); }
 </style>
 </head>
@@ -431,7 +431,7 @@ function arrowSVG(s, color) {
   const open = '<svg viewBox="0 0 24 24" fill="none" stroke="' + c + '" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">';
   if (s.t === "arrive") return open + '<path d="M6 21V4M6 4h11l-2.5 4L17 12H6"/></svg>';
   if (s.t === "roundabout" || s.t === "rotary") {
-    return open + '<circle cx="12" cy="9" r="4.5"/><path d="M12 21v-7.5"/><text x="12" y="11.6" fill="' + c + '" stroke="none" font-size="7" font-weight="800" text-anchor="middle" font-family="Rubik, sans-serif">' + (s.x || "") + '</text></svg>';
+    return open + '<circle cx="12" cy="10" r="6.5"/><path d="M12 22v-5.5"/><text x="12" y="13" fill="' + c + '" stroke="none" font-size="8.5" font-weight="800" text-anchor="middle" font-family="Rubik, sans-serif">' + (s.x || "") + '</text></svg>';
   }
   if (s.m === "uturn") return open + '<path d="M8 21V10a4 4 0 0 1 8 0v7"/><path d="M13 14l3 3 3-3"/></svg>';
   const a = (ANG[s.m] !== undefined ? ANG[s.m] : 0) * Math.PI / 180;
@@ -568,7 +568,7 @@ function startNav(demo) {
   if (startMarker) startMarker.remove();
   const el = document.createElement("div");
   el.innerHTML = '<svg class="car" viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="21" fill="#33ccff" stroke="#fff" stroke-width="3.5"/><path d="M24 11l9 23-9-5.5-9 5.5z" fill="#fff"/></svg>';
-  carMarker = new maplibregl.Marker({ element: el, rotationAlignment: "map", pitchAlignment: "map" }).setLngLat(state.route.coords[0]).addTo(map);
+  carMarker = new maplibregl.Marker({ element: el, rotationAlignment: "map", pitchAlignment: "viewport" }).setLngLat(state.route.coords[0]).addTo(map);
   speak(demo ? "Demo-rit gestart." : "Navigatie gestart. Rij voorzichtig.");
   requestWake();
   updateInstruction(0);
