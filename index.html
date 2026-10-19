@@ -1,0 +1,421 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0d131d">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Nachtlus">
+<title>Nachtlus</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@600;700&family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+:root {
+  --ink: #0d131d; --surface: #151d2a; --raise: #1c2636; --line: #273246;
+  --fg: #e7eaef; --muted: #8b95a7; --dim: #5a6578;
+  --sodium: #f0a64b; --sodium-ink: #2a1a06; --danger: #e8806b;
+  --f-display: "Barlow Semi Condensed", "Arial Narrow", system-ui, sans-serif;
+  --f-body: "Barlow", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: var(--ink); color: var(--fg); font-family: var(--f-body); font-size: 16px; -webkit-font-smoothing: antialiased; }
+.app { display: grid; grid-template-rows: 54dvh auto; min-height: 100dvh; }
+@media (min-width: 900px) { .app { grid-template-rows: none; grid-template-columns: 1fr 400px; height: 100dvh; } }
+#map { width: 100%; height: 100%; background: #0a0f17; }
+.leaflet-container { font-family: var(--f-body); }
+.leaflet-control-attribution { background: rgba(13,19,29,.75) !important; color: var(--dim) !important; font-size: 10px; }
+.leaflet-control-attribution a { color: var(--muted) !important; }
+.leaflet-bar a { background: var(--surface); color: var(--fg); border-color: var(--line); }
+
+.panel {
+  background: var(--ink); border-top: 1px solid var(--line);
+  padding: 18px max(16px, env(safe-area-inset-right)) calc(28px + env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+  display: grid; gap: 16px; align-content: start;
+}
+@media (min-width: 900px) { .panel { border-top: 0; border-left: 1px solid var(--line); overflow-y: auto; padding-top: 22px; } }
+header { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+h1 { font-family: var(--f-display); font-weight: 700; font-size: 1.8rem; margin: 0; line-height: 1; }
+h1 span { color: var(--sodium); }
+.tag { font-family: var(--f-mono); font-size: .7rem; color: var(--muted); letter-spacing: .05em; }
+
+.stats { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.stat { padding: 10px 0; display: grid; gap: 2px; }
+.stat + .stat { border-left: 1px solid var(--line); padding-left: 12px; }
+.stat b { font-family: var(--f-mono); font-weight: 500; font-size: 1.3rem; font-variant-numeric: tabular-nums; }
+.stat small { font-size: .68rem; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+
+.field { display: grid; gap: 6px; }
+.label { font-size: .72rem; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-weight: 600; }
+.start-row { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 8px; }
+input[type=text] { font: inherit; color: var(--fg); background: var(--raise); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; min-height: 46px; width: 100%; }
+.help { font-size: .78rem; color: var(--dim); margin: 0; }
+.start-now { font-size: .9rem; color: var(--fg); margin: 0; min-height: 1.3em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.start-now b { color: var(--sodium); font-weight: 600; }
+.km-row { display: flex; justify-content: space-between; align-items: baseline; }
+.km-val { font-family: var(--f-mono); }
+input[type=range] { width: 100%; accent-color: var(--sodium); height: 30px; margin: 0; }
+.toggle { display: flex; align-items: center; gap: 10px; font-size: .95rem; cursor: pointer; }
+.toggle input { width: 20px; height: 20px; accent-color: var(--sodium); }
+
+.btn { font: inherit; font-weight: 600; border-radius: 12px; min-height: 48px; padding: 0 16px; display: inline-flex; align-items: center; justify-content: center; gap: 9px; cursor: pointer; text-decoration: none; border: 1px solid var(--line); background: var(--raise); color: var(--fg); transition: transform .15s cubic-bezier(.16,1,.3,1); }
+.btn:active { transform: scale(.98); }
+.btn:disabled, .btn[aria-disabled=true] { opacity: .45; pointer-events: none; }
+.btn svg { width: 18px; height: 18px; flex: none; }
+.btn-new { width: 100%; font-family: var(--f-display); font-size: 1.15rem; }
+.btn-go { width: 100%; background: var(--sodium); color: var(--sodium-ink); border-color: transparent; font-family: var(--f-display); font-size: 1.25rem; min-height: 56px; }
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.btn-sm { min-height: 44px; font-size: .9rem; }
+:focus-visible { outline: 2px solid var(--sodium); outline-offset: 2px; }
+
+.status { font-size: .88rem; margin: 0; min-height: 1.3em; color: var(--muted); }
+.status.err { color: var(--danger); }
+.status.ok { color: var(--sodium); }
+
+.saved-title { font-family: var(--f-display); font-weight: 600; font-size: 1.05rem; margin: 4px 0 0; }
+.saved-item { display: grid; grid-template-columns: minmax(0,1fr) auto auto auto; gap: 4px; align-items: center; padding: 8px 0; border-top: 1px solid var(--line); }
+.saved-item .t { font-size: .9rem; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.saved-item small { display: block; font-family: var(--f-mono); font-size: .7rem; color: var(--dim); }
+.link-btn { background: none; border: 0; color: var(--sodium); font: inherit; font-weight: 600; cursor: pointer; padding: 8px; min-height: 40px; text-decoration: none; }
+.link-btn.x { color: var(--dim); }
+.empty { color: var(--dim); font-size: .85rem; margin: 0; }
+.foot { font-size: .76rem; color: var(--dim); margin: 0; line-height: 1.45; }
+
+.start-pin { width: 22px; height: 22px; border-radius: 50%; background: var(--sodium); border: 3px solid var(--ink); box-shadow: 0 0 0 2px var(--sodium); display: grid; place-items: center; font: 700 10px var(--f-mono); color: var(--sodium-ink); }
+.via-pin { width: 10px; height: 10px; border-radius: 50%; background: var(--ink); border: 2px solid var(--sodium); }
+</style>
+</head>
+<body>
+<div class="app">
+  <div id="map" aria-label="Kaart met de route"></div>
+
+  <div class="panel">
+    <header>
+      <h1>Nacht<span>lus</span></h1>
+      <span class="tag" id="loopId">ROUTE GENERATOR</span>
+    </header>
+
+    <div class="stats">
+      <div class="stat"><b id="sKm">–</b><small>km</small></div>
+      <div class="stat"><b id="sMin">–</b><small>minuten</small></div>
+      <div class="stat"><b id="sVia">–</b><small>via-punten</small></div>
+    </div>
+
+    <p class="status" id="status" aria-live="polite"></p>
+
+    <div class="field">
+      <span class="label">Start en eindpunt</span>
+      <p class="start-now" id="startNow"></p>
+      <div class="start-row">
+        <input type="text" id="addr" placeholder="Zoek adres of plaats" autocomplete="off" enterkeyhint="search">
+        <button class="btn" id="locBtn" type="button" aria-label="Gebruik mijn locatie">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>
+          Hier
+        </button>
+      </div>
+      <p class="help">Of tik ergens op de kaart om daar te starten.</p>
+    </div>
+
+    <div class="field">
+      <div class="km-row"><label class="label" for="km">Lengte</label><span class="km-val" id="kmVal">40 km</span></div>
+      <input type="range" id="km" min="15" max="150" step="5" value="40">
+    </div>
+
+    <label class="toggle"><input type="checkbox" id="noHwy" checked> Snelwegen vermijden</label>
+
+    <button class="btn btn-new" id="newBtn" type="button">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
+      Nieuwe route
+    </button>
+
+    <a class="btn btn-go" id="goBtn" href="#" target="_blank" rel="noopener" aria-disabled="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l18-8-8 18-2-8-8-2z"/></svg>
+      Rijden met Google Maps
+    </a>
+    <div class="row2">
+      <button class="btn btn-sm" id="gpxBtn" type="button" disabled>GPX downloaden</button>
+      <button class="btn btn-sm" id="saveBtn" type="button" disabled>Bewaar route</button>
+    </div>
+
+    <div>
+      <h2 class="saved-title">Bewaarde routes</h2>
+      <div id="saved"></div>
+    </div>
+
+    <p class="foot">Routes over echte wegen via OSRM (OpenStreetMap). Google Maps krijgt de route als via-punten mee en volgt hem zo goed als hetzelfde traject; op CarPlay zie je hem gewoon in Google Maps. Zet bij Google Maps ook "Snelwegen vermijden" aan als je dat hier aan hebt staan.</p>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+// ---------- instellingen ----------
+const OSRM = "https://router.project-osrm.org/route/v1/driving/";
+const NOMINATIM = "https://nominatim.openstreetmap.org/search?format=json&limit=1&q=";
+const EXAMPLE_START = { lat: 50.8731, lng: 5.5189, label: "Bilzen (voorbeeld)" };
+
+// ---------- hulpfuncties ----------
+const $ = id => document.getElementById(id);
+const store = {
+  get(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+};
+function mulberry32(a) { return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+const R = 6371;
+function hav(a, b) { // km tussen {lat,lng}
+  const dLat = (b.lat - a.lat) * Math.PI / 180, dLng = (b.lng - a.lng) * Math.PI / 180;
+  const s = Math.sin(dLat / 2) ** 2 + Math.cos(a.lat * Math.PI / 180) * Math.cos(b.lat * Math.PI / 180) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(s));
+}
+function offset(p, kmEast, kmNorth) {
+  return { lat: p.lat + kmNorth / 110.57, lng: p.lng + kmEast / (111.32 * Math.cos(p.lat * Math.PI / 180)) };
+}
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+function setStatus(msg, kind) { const s = $("status"); s.textContent = msg; s.className = "status" + (kind ? " " + kind : ""); }
+
+// ---------- routering ----------
+async function osrmRoute(points) {
+  const path = points.map(p => p.lng.toFixed(5) + "," + p.lat.toFixed(5)).join(";");
+  const res = await fetch(OSRM + path + "?overview=full&geometries=geojson&continue_straight=true&steps=true");
+  if (res.status === 429) throw new Error("busy");
+  const j = await res.json();
+  if (j.code !== "Ok") throw new Error(j.message || j.code);
+  return j.routes[0];
+}
+
+// Deel van de route op snelwegen (E313, A2, E 314 …), 0..1
+function highwayRatio(route) {
+  let hwy = 0;
+  for (const leg of route.legs) for (const s of leg.steps) if (/(^|;)\s*[AE]\s?\d/.test(s.ref || "")) hwy += s.distance;
+  return route.distance ? hwy / route.distance : 0;
+}
+
+// Vorm van de lus: cirkel door het startpunt, ankers rondom, met wat willekeur
+function makeShape(rng, km) {
+  const n = km < 25 ? 3 : km < 50 ? 4 : km < 90 ? 5 : 6;
+  return {
+    n, th: rng() * Math.PI * 2, dir: rng() < .5 ? 1 : -1,
+    jit: Array.from({ length: n }, () => (rng() - .5) * .6),
+    rad: Array.from({ length: n }, () => .85 + rng() * .3)
+  };
+}
+function anchorsFor(start, shape, r) {
+  const C = { x: r * Math.cos(shape.th), y: r * Math.sin(shape.th) };
+  const a0 = Math.atan2(-C.y, -C.x), step = 2 * Math.PI / (shape.n + 1);
+  const out = [];
+  for (let i = 0; i < shape.n; i++) {
+    const a = a0 + shape.dir * step * (i + 1 + shape.jit[i]);
+    out.push(offset(start, C.x + r * shape.rad[i] * Math.cos(a), C.y + r * shape.rad[i] * Math.sin(a)));
+  }
+  return out;
+}
+
+// Hoeveel van de route rijd je dubbel (heen en terug op dezelfde weg)? 0..1
+function overlapRatio(coords, start) {
+  const pts = [];
+  for (let i = 0; i < coords.length - 1; i++) { // verdicht tot ~40 m
+    const a = { lng: coords[i][0], lat: coords[i][1] }, b = { lng: coords[i + 1][0], lat: coords[i + 1][1] };
+    const steps = Math.max(1, Math.ceil(hav(a, b) / .04));
+    for (let s = 0; s < steps; s++) pts.push({ lat: a.lat + (b.lat - a.lat) * s / steps, lng: a.lng + (b.lng - a.lng) * s / steps });
+  }
+  const seen = new Map(); let dup = 0, counted = 0;
+  pts.forEach((p, i) => {
+    if (hav(p, start) < .8) return;   // eigen straat in en uit telt niet
+    counted++;
+    const key = Math.round(p.lat * 2700) + ":" + Math.round(p.lng * 1700);
+    const first = seen.get(key);
+    if (first === undefined) seen.set(key, i);
+    else if (i - first > 30) dup++;
+  });
+  return counted ? dup / counted : 0;
+}
+
+async function buildLoop(start, km, seed, avoidHwy, onTry) {
+  const rng = mulberry32(seed);
+  let shape = makeShape(rng, km), factor = 1.35, best = null;
+  for (let attempt = 1; attempt <= 8; attempt++) {
+    onTry(attempt);
+    const r = km / (2 * Math.PI * factor);
+    const anchors = anchorsFor(start, shape, r);
+    const route = await osrmRoute([start, ...anchors, start]);
+    const dist = route.distance / 1000;
+    const overlap = overlapRatio(route.geometry.coordinates, start);
+    const hwy = avoidHwy ? highwayRatio(route) : 0;
+    const score = Math.abs(dist / km - 1) + overlap * 2 + hwy * 3;
+    if (!best || score < best.score) best = { route, dist, overlap, hwy, score };
+    if (overlap > .12 || hwy > .03) { shape = makeShape(rng, km); factor = 1.35; }   // doodlopend stuk of snelweg: andere vorm
+    else if (Math.abs(dist / km - 1) <= .1) break;                    // goed genoeg
+    else factor *= dist / km;                                         // zelfde vorm, schaal bijstellen
+    await sleep(350); // vriendelijk voor de gratis routeserver
+  }
+  return best;
+}
+
+// Punten langs de route die Google als via-punten krijgt
+function sampleVia(coords, km) {
+  const n = Math.max(4, Math.min(9, Math.round(km / 6)));
+  const cum = [0];
+  for (let i = 1; i < coords.length; i++) cum.push(cum[i - 1] + hav({ lng: coords[i - 1][0], lat: coords[i - 1][1] }, { lng: coords[i][0], lat: coords[i][1] }));
+  const total = cum[cum.length - 1], out = [];
+  let j = 0;
+  for (let k = 1; k <= n; k++) {
+    const target = total * k / (n + 1);
+    while (j < cum.length - 1 && cum[j] < target) j++;
+    out.push({ lat: coords[j][1], lng: coords[j][0] });
+  }
+  return out;
+}
+
+function mapsUrl(start, via) {
+  return "https://www.google.com/maps/dir/?api=1"
+    + "&destination=" + start.lat.toFixed(6) + "," + start.lng.toFixed(6)
+    + "&waypoints=" + encodeURIComponent(via.map(p => p.lat.toFixed(6) + "," + p.lng.toFixed(6)).join("|"))
+    + "&travelmode=driving&dir_action=navigate";
+}
+
+function toGpx(coords, name) {
+  const pts = coords.map(c => '<trkpt lat="' + c[1].toFixed(6) + '" lon="' + c[0].toFixed(6) + '"/>').join("");
+  return '<?xml version="1.0" encoding="UTF-8"?><gpx version="1.1" creator="Nachtlus" xmlns="http://www.topografix.com/GPX/1/1"><trk><name>' + name + '</name><trkseg>' + pts + '</trkseg></trk></gpx>';
+}
+
+// ---------- kaart ----------
+const map = L.map("map", { zoomControl: true, attributionControl: true }).setView([EXAMPLE_START.lat, EXAMPLE_START.lng], 12);
+L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
+  maxZoom: 19, subdomains: "abcd",
+  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a> · OSRM'
+}).addTo(map);
+let startMarker = null, glow = null, line = null, viaLayer = L.layerGroup().addTo(map);
+
+function drawRoute(coords, via) {
+  const ll = coords.map(c => [c[1], c[0]]);
+  if (glow) glow.remove(); if (line) line.remove();
+  glow = L.polyline(ll, { color: "#f0a64b", weight: 12, opacity: .18, interactive: false }).addTo(map);
+  line = L.polyline(ll, { color: "#f0a64b", weight: 4, opacity: .95, interactive: false }).addTo(map);
+  viaLayer.clearLayers();
+  via.forEach(p => L.marker([p.lat, p.lng], { icon: L.divIcon({ className: "", html: '<div class="via-pin"></div>', iconSize: [10, 10] }), interactive: false }).addTo(viaLayer));
+  map.fitBounds(line.getBounds(), { padding: [28, 28] });
+}
+function drawStart() {
+  if (startMarker) startMarker.remove();
+  startMarker = L.marker([state.start.lat, state.start.lng], { icon: L.divIcon({ className: "", html: '<div class="start-pin">S</div>', iconSize: [22, 22] }), zIndexOffset: 1000 }).addTo(map);
+  $("startNow").innerHTML = "";
+  const b = document.createElement("b"); b.textContent = state.start.label;
+  $("startNow").append("Start: ", b);
+}
+
+// ---------- app ----------
+const state = {
+  start: store.get("nl2.start", EXAMPLE_START),
+  km: store.get("nl2.km", 40),
+  avoid: store.get("nl2.avoid", true),
+  seed: 0, current: null, busy: false,
+  saved: store.get("nl2.saved", [])
+};
+
+async function generate() {
+  if (state.busy) return;
+  state.busy = true; state.seed = Math.floor(Math.random() * 90000) + 10000;
+  $("newBtn").disabled = true; $("goBtn").setAttribute("aria-disabled", "true");
+  try {
+    const best = await buildLoop(state.start, state.km, state.seed, state.avoid, n => setStatus("Route zoeken… poging " + n));
+    const coords = best.route.geometry.coordinates;
+    const via = sampleVia(coords, best.dist);
+    state.current = { coords, via, dist: best.dist, min: Math.round(best.route.duration / 60), url: mapsUrl(state.start, via) };
+    drawRoute(coords, via);
+    $("sKm").textContent = best.dist.toFixed(1);
+    $("sMin").textContent = state.current.min;
+    $("sVia").textContent = via.length;
+    $("loopId").textContent = "ROUTE " + state.seed;
+    $("goBtn").href = state.current.url; $("goBtn").removeAttribute("aria-disabled");
+    $("gpxBtn").disabled = false; $("saveBtn").disabled = false;
+    setStatus(best.overlap > .12 ? "Route klaar, maar met een stuk heen en terug. Probeer gerust een nieuwe."
+      : best.hwy > .03 ? "Route klaar, maar er zit een stukje snelweg in. Probeer gerust een nieuwe."
+      : "Route klaar.", "ok");
+  } catch (e) {
+    setStatus(e.message === "busy" ? "De gratis routeserver is even druk. Probeer over een paar seconden opnieuw." : "Geen route gevonden (" + e.message + "). Probeer opnieuw of kies een ander startpunt.", "err");
+  } finally {
+    state.busy = false; $("newBtn").disabled = false;
+  }
+}
+
+function setStart(lat, lng, label) {
+  state.start = { lat, lng, label };
+  store.set("nl2.start", state.start);
+  drawStart(); generate();
+}
+
+function renderSaved() {
+  const box = $("saved"); box.innerHTML = "";
+  if (!state.saved.length) { const p = document.createElement("p"); p.className = "empty"; p.textContent = "Nog niets bewaard. Bewaar een route die je goed vond, dan kan je hem later opnieuw rijden."; box.append(p); return; }
+  state.saved.forEach((s, i) => {
+    const d = document.createElement("div"); d.className = "saved-item";
+    const t = document.createElement("div"); t.className = "t"; t.textContent = s.km + " km vanaf " + s.start;
+    const sm = document.createElement("small"); sm.textContent = "route " + s.seed + " · " + s.date; t.append(sm);
+    const show = document.createElement("button"); show.type = "button"; show.className = "link-btn"; show.textContent = "Toon";
+    show.onclick = () => {
+      state.seed = s.seed; state.current = { coords: s.coords, via: s.via, dist: s.km, min: s.min, url: s.url };
+      drawRoute(s.coords, s.via);
+      $("sKm").textContent = s.km; $("sMin").textContent = s.min; $("sVia").textContent = s.via.length;
+      $("loopId").textContent = "ROUTE " + s.seed; $("goBtn").href = s.url; $("goBtn").removeAttribute("aria-disabled");
+      setStatus("Bewaarde route geladen.", "ok");
+    };
+    const go = document.createElement("a"); go.className = "link-btn"; go.href = s.url; go.target = "_blank"; go.rel = "noopener"; go.textContent = "Rij";
+    const del = document.createElement("button"); del.type = "button"; del.className = "link-btn x"; del.textContent = "Wis";
+    del.onclick = () => { state.saved.splice(i, 1); store.set("nl2.saved", state.saved); renderSaved(); };
+    d.append(t, show, go, del); box.append(d);
+  });
+}
+
+// ---------- invoer ----------
+$("km").value = state.km; $("kmVal").textContent = state.km + " km"; $("noHwy").checked = state.avoid;
+$("km").addEventListener("input", e => $("kmVal").textContent = e.target.value + " km");
+$("km").addEventListener("change", e => { state.km = +e.target.value; store.set("nl2.km", state.km); generate(); });
+$("noHwy").addEventListener("change", e => { state.avoid = e.target.checked; store.set("nl2.avoid", state.avoid); generate(); });
+$("newBtn").addEventListener("click", generate);
+map.on("click", e => setStart(+e.latlng.lat.toFixed(6), +e.latlng.lng.toFixed(6), "punt op de kaart"));
+
+$("locBtn").addEventListener("click", () => {
+  if (!navigator.geolocation) { setStatus("Je browser geeft geen locatie door.", "err"); return; }
+  setStatus("Locatie ophalen…");
+  navigator.geolocation.getCurrentPosition(
+    p => setStart(+p.coords.latitude.toFixed(6), +p.coords.longitude.toFixed(6), "mijn locatie"),
+    () => setStatus("Geen toegang tot je locatie. Zoek een adres of tik op de kaart.", "err"),
+    { enableHighAccuracy: true, timeout: 10000 }
+  );
+});
+
+$("addr").addEventListener("keydown", async e => {
+  if (e.key !== "Enter") return;
+  const q = e.target.value.trim(); if (!q) return;
+  e.target.blur(); setStatus("Adres zoeken…");
+  try {
+    const r = await fetch(NOMINATIM + encodeURIComponent(q) + "&countrycodes=be,nl,de,lu,fr");
+    const j = await r.json();
+    if (!j.length) { setStatus("Adres niet gevonden. Probeer straat en gemeente.", "err"); return; }
+    setStart(+(+j[0].lat).toFixed(6), +(+j[0].lon).toFixed(6), q);
+  } catch (err) { setStatus("Adres zoeken lukte niet. Tik op de kaart om je start te kiezen.", "err"); }
+});
+
+$("gpxBtn").addEventListener("click", () => {
+  if (!state.current) return;
+  const blob = new Blob([toGpx(state.current.coords, "Nachtlus " + state.seed)], { type: "application/gpx+xml" });
+  const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "nachtlus-" + state.seed + ".gpx"; a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+});
+
+$("saveBtn").addEventListener("click", () => {
+  if (!state.current) return;
+  if (state.saved.some(s => s.url === state.current.url)) { setStatus("Deze route is al bewaard.", "ok"); return; }
+  const c = state.current;
+  state.saved.unshift({ seed: state.seed, start: state.start.label, km: +c.dist.toFixed(1), min: c.min, url: c.url, via: c.via,
+    coords: c.coords.filter((_, i) => i % 3 === 0 || i === c.coords.length - 1).map(p => [+p[0].toFixed(5), +p[1].toFixed(5)]),
+    date: new Date().toLocaleDateString("nl-BE") });
+  state.saved = state.saved.slice(0, 15);
+  store.set("nl2.saved", state.saved); renderSaved(); setStatus("Route bewaard.", "ok");
+});
+
+drawStart(); renderSaved(); generate();
+</script>
+</body>
+</html>
