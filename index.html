@@ -25,6 +25,7 @@ html, body { margin: 0; height: 100%; background: var(--ink); color: var(--fg); 
 .app { display: grid; grid-template-rows: 54dvh auto; min-height: 100dvh; }
 @media (min-width: 900px) { .app { grid-template-rows: none; grid-template-columns: 1fr 400px; height: 100dvh; } }
 #map { width: 100%; height: 100%; background: #0a0f17; }
+.night-tiles { filter: invert(1) hue-rotate(185deg) brightness(.85) contrast(.9) saturate(.5); }
 .leaflet-container { font-family: var(--f-body); }
 .leaflet-control-attribution { background: rgba(13,19,29,.75) !important; color: var(--dim) !important; font-size: 10px; }
 .leaflet-control-attribution a { color: var(--muted) !important; }
@@ -281,9 +282,9 @@ function toGpx(coords, name) {
 
 // ---------- kaart ----------
 const map = L.map("map", { zoomControl: true, attributionControl: true }).setView([EXAMPLE_START.lat, EXAMPLE_START.lng], 12);
-L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
-  maxZoom: 19, subdomains: "abcd",
-  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a> · OSRM'
+L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+  maxZoom: 19, className: "night-tiles",
+  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> · routes: OSRM'
 }).addTo(map);
 let startMarker = null, glow = null, line = null, viaLayer = L.layerGroup().addTo(map);
 
